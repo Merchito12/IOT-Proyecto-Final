@@ -76,7 +76,7 @@ Al hacer el cambio de puerto
  
 #define MQTT_PORT 8883 // después
 
-Nos marca error, no conecta ya que se esta intentando hablar TLS(8883) con un cliente sin TLS (WifiCliente)
+Sigue funcionando debido a que esta confiando ciegamente en el certificado porque no lo estamos validando
 
 **2. Realizar el cambio para validar certificados, verificar que sin más cambios la comunicación falla (sin cargar el certificado al ESP32).**
 
