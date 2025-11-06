@@ -67,3 +67,31 @@ Shor rompería RSA/DH/ECDSA a escala suficiente.
 Grover reduce seguridad simétrica (mitigable con claves más largas, p. ej., AES-256).
 
 Por ello surgen métodos poscuánticos (PQC) y modos híbridos (clásico+PQC) en pruebas para TLS.
+# PRUEBAS
+**1. Modificar el código de conexión a MQTT para usar un puerto seguro. Sin hacer más cambios verificar que la conexión sigue  funcionando (¿o no?).** 
+
+Al hacer el cambio de puerto
+
+#define MQTT_PORT 1883 // antes
+ 
+#define MQTT_PORT 8883 // después
+
+Nos marca error, no conecta ya que se esta intentando hablar TLS(8883) con un cliente sin TLS (WifiCliente)
+
+**2. Realizar el cambio para validar certificados, verificar que sin más cambios la comunicación falla (sin cargar el certificado al ESP32).**
+
+Se cambio a wifiClientSecure usando 
+ **#include <WiFiClientSecure.h>**
+
+Falla la validacion debido a que no se le ha dado algun CA al ESP32 entonces esta correcto con que salga error.
+
+**3. Agregar los certificados al código y verificar que la comunicación vuelve a funcionar (¿o no?)**
+
+Se agregó certificados usando el bundle de CAs del esp32
+
+#include <esp_crt_bundle.h>
+
+ espClient.setCACertBundle(esp_crt_bundle_attach);
+ 
+client.setServer(MQTT_SERVER, MQTT_PORT);
+
