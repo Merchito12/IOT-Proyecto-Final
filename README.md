@@ -23,3 +23,7 @@ Integrantes:
 -Julian Pedraza
 
 -Brandon Merchan
+
+# Presentación
+
+### https://www.canva.com/design/DAG5Lrz9CTo/XMe9uYcwRYg5JQlz1o4cNA/edit?utm_content=DAG5Lrz9CTo&utm_campaign=designshare&utm_medium=link2&utm_source=sharebutton
