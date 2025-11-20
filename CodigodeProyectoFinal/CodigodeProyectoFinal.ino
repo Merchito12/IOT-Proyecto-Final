@@ -7,8 +7,8 @@
 // ---------------- CONFIGURACIÓN ----------------
 
 // WiFi
-#define WIFI_SSID      "GUAMAL"
-#define WIFI_PASSWORD  "Mariposa2641+*"
+#define WIFI_SSID      "Brandon Eduardo Merchan sandoval"
+#define WIFI_PASSWORD  "12345678"
 
 // Broker MQTT (HiveMQ público)
 #define MQTT_SERVER "broker.hivemq.com"
@@ -46,7 +46,7 @@ const unsigned long BACKWARD_STEP_MS  = 350;    // ms atrás
 const float BLOCK_MARGIN_CM   = 10.0f;  // si el sensor mide <= 10cm no avanza
 
 // GIRO ~90°
-const int TURN_MS_90 = 420;             // ms para girar ~90° (ya lo tenías calibrado)
+const int TURN_MS_90 = 440;             // ms para girar ~90° (ya lo tenías calibrado)
 
 // Distancia mínima válida para considerar una pared / obstáculo
 const float MIN_VALID_DIST_CM = 1.0f;
@@ -754,10 +754,10 @@ void actualizarPosicion(const String& direction, int steps) {
     posX -= distance * sin(rad);
     posY -= distance * cos(rad);
   } else if (direction == "left") {
-    headingDeg += 90.0f;
+    headingDeg -= 90.0f;
     if (headingDeg >= 360.0f) headingDeg -= 360.0f;
   } else if (direction == "right") {
-    headingDeg -= 90.0f;
+    headingDeg += 90.0f;
     if (headingDeg < 0.0f) headingDeg += 360.0f;
   }
 }
