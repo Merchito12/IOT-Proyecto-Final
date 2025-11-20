@@ -34,7 +34,7 @@
 // *** CALIBRACIÓN DE MOVIMIENTO / MAPA ***
 
 // Distancia lógica que el mapa asume por cada "paso" (un comando adelante/atrás)
-const float ODO_STEP_CM       = 8.0f;   // Ajusta si quieres que el mapa use otra distancia
+const float ODO_STEP_CM       = 10.0f;   // Ajusta si quieres que el mapa use otra distancia
 
 // Tiempo real que el motor está activo para intentar recorrer ODO_STEP_CM
 // Si ves que en la vida real se mueve más de 10 cm, BAJA este valor.
@@ -46,7 +46,7 @@ const unsigned long BACKWARD_STEP_MS  = 350;    // ms atrás
 const float BLOCK_MARGIN_CM   = 10.0f;  // si el sensor mide <= 10cm no avanza
 
 // GIRO ~90°
-const int TURN_MS_90 = 440;             // ms para girar ~90° (ya lo tenías calibrado)
+const int TURN_MS_90 = 420;             // ms para girar ~90° (ya lo tenías calibrado)
 
 // Distancia mínima válida para considerar una pared / obstáculo
 const float MIN_VALID_DIST_CM = 1.0f;
@@ -104,14 +104,14 @@ float lastObsAngle = NAN;
 
 unsigned long lastSensorPublish = 0;
 
-// ---------------- PÁGINA HTML (igual que la última, con botón de líneas) ----------------
+// ---------------- PÁGINA HTML (WALL-E, sin duración, con brújula y más zoom) ----------------
 
 const char MAIN_PAGE[] PROGMEM = R"rawliteral(
 <!DOCTYPE html>
 <html>
 <head>
   <meta charset="utf-8" />
-  <title>Carrito MQTT Mapper (TLS)</title>
+  <title>WALL-E</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -126,10 +126,6 @@ const char MAIN_PAGE[] PROGMEM = R"rawliteral(
     }
     .controls {
       margin-top: 10px;
-    }
-    .controls input {
-      width: 60px;
-      text-align: center;
     }
     .btn {
       padding: 6px 12px;
@@ -153,15 +149,20 @@ const char MAIN_PAGE[] PROGMEM = R"rawliteral(
       color: #ff6666;
       min-height: 1.2em;
     }
+    .layout {
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+      flex-wrap: wrap;
+      margin-top: 10px;
+    }
   </style>
 </head>
 <body>
-  <h2>Carrito MQTT Mapper (TLS)</h2>
+  <h2>WALL-E</h2>
 
   <div class="controls">
-    Duración (s):
-    <input id="duration" type="number" value="1" min="0" max="5" />
-    <br /><br />
+    <!-- Quitamos input de duración: usamos pasos fijos en el backend -->
     <button class="btn" onclick="sendMove('forward')">⬆ Adelante</button><br />
     <button class="btn" onclick="sendMove('left')">⬅ Izquierda</button>
     <button class="btn" onclick="sendMove('stop')">⏹ Stop</button>
@@ -181,8 +182,16 @@ const char MAIN_PAGE[] PROGMEM = R"rawliteral(
   <p id="mqttStatus">MQTT: inicializando...</p>
   <p id="alertMessage"></p>
 
-  <canvas id="map" width="600" height="600"></canvas>
-  <p>Posición: <span id="pos">cargando...</span></p>
+  <div class="layout">
+    <div>
+      <canvas id="map" width="600" height="600"></canvas>
+      <p>Posición: <span id="pos">cargando...</span></p>
+    </div>
+    <div>
+      <canvas id="compass" width="140" height="140"></canvas>
+      <p>Orientación: <span id="headingText">0° (N)</span></p>
+    </div>
+  </div>
 
   <script>
     var SENSOR_TOPIC = "car/sensor";
@@ -194,6 +203,10 @@ const char MAIN_PAGE[] PROGMEM = R"rawliteral(
     var lastMoveSpan = document.getElementById("lastMove");
     var mqttStatusSpan = document.getElementById("mqttStatus");
     var alertSpan = document.getElementById("alertMessage");
+
+    var compass = document.getElementById("compass");
+    var cctx = compass.getContext("2d");
+    var headingTextSpan = document.getElementById("headingText");
 
     var obstacles = [];
     var robot = { x: 0, y: 0, heading: 0 };
@@ -423,8 +436,9 @@ const char MAIN_PAGE[] PROGMEM = R"rawliteral(
 
     setInterval(sendPing, 30000);
 
+    // Enviar movimiento al API REST: usamos duración fija = 1 paso (stop = 0)
     function sendMove(dir) {
-      var duration = parseInt(document.getElementById("duration").value) || 1;
+      var duration = 1;
       if (dir === "stop") duration = 0;
 
       var body =
@@ -439,7 +453,7 @@ const char MAIN_PAGE[] PROGMEM = R"rawliteral(
       .then(r => r.json())
       .then(data => {
         lastMoveSpan.textContent =
-          "Último movimiento: " + data.direction + " (t=" + data.duration + "s)";
+          "Último movimiento: " + data.direction + " (pasos=" + data.duration + ")";
       })
       .catch(err => {
         console.error("Error en /api/v1/move:", err);
@@ -459,6 +473,64 @@ const char MAIN_PAGE[] PROGMEM = R"rawliteral(
     }
 
     window.toggleRays = toggleRays;
+
+    function headingToCardinal(h) {
+      var a = ((h % 360) + 360) % 360;
+      if (a >= 315 || a < 45) return "N";
+      if (a >= 45 && a < 135) return "E";
+      if (a >= 135 && a < 225) return "S";
+      return "O"; // Oeste
+    }
+
+    function drawCompass() {
+      var w = compass.width;
+      var h = compass.height;
+      var cx = w / 2;
+      var cy = h / 2;
+      var r = 50;
+
+      cctx.clearRect(0, 0, w, h);
+
+      cctx.fillStyle = "#111";
+      cctx.fillRect(0, 0, w, h);
+
+      cctx.strokeStyle = "#555";
+      cctx.beginPath();
+      cctx.arc(cx, cy, r, 0, Math.PI * 2);
+      cctx.stroke();
+
+      cctx.fillStyle = "#eee";
+      cctx.font = "12px Arial";
+      cctx.textAlign = "center";
+      cctx.textBaseline = "middle";
+      cctx.fillText("N", cx, cy - r + 10);
+      cctx.fillText("S", cx, cy + r - 10);
+      cctx.fillText("O", cx - r + 10, cy);
+      cctx.fillText("E", cx + r - 10, cy);
+
+      var ang = robot.heading * Math.PI / 180;
+      var len = 35;
+      var dx = Math.sin(ang);
+      var dy = -Math.cos(ang); // negativo porque en canvas Y crece hacia abajo
+
+      var ex = cx + dx * len;
+      var ey = cy + dy * len;
+
+      cctx.strokeStyle = "#0ff";
+      cctx.beginPath();
+      cctx.moveTo(cx, cy);
+      cctx.lineTo(ex, ey);
+      cctx.stroke();
+
+      cctx.fillStyle = "#0ff";
+      cctx.beginPath();
+      cctx.arc(ex, ey, 3, 0, Math.PI * 2);
+      cctx.fill();
+
+      var card = headingToCardinal(robot.heading);
+      headingTextSpan.textContent =
+        robot.heading.toFixed(0) + "° (" + card + ")";
+    }
 
     function drawMap() {
       var w = canvas.width;
@@ -484,6 +556,9 @@ const char MAIN_PAGE[] PROGMEM = R"rawliteral(
       var scaleX = (w - 2 * margin) / (maxX - minX || 1);
       var scaleY = (h - 2 * margin) / (maxY - minY || 1);
       var scale = (scaleX < scaleY) ? scaleX : scaleY;
+
+      // 🔍 Un poco de zoom extra
+      scale *= 1.4;
 
       function toScreen(px, py) {
         var sx = (px - minX) * scale + margin;
@@ -590,6 +665,8 @@ const char MAIN_PAGE[] PROGMEM = R"rawliteral(
       posSpan.textContent =
         "x=" + robot.x.toFixed(1) + "cm, y=" + robot.y.toFixed(1) +
         "cm, heading=" + robot.heading.toFixed(0) + "°";
+
+      drawCompass();
     }
 
     drawMap();
@@ -667,7 +744,6 @@ void agregarPuntoMapa(float distanciaCm) {
 }
 
 void actualizarPosicion(const String& direction, int steps) {
-  // Cada "step" lógico avanza ODO_STEP_CM
   float distance = ODO_STEP_CM * steps;
   float rad = headingDeg * PI / 180.0f;
 
