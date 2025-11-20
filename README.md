@@ -24,6 +24,11 @@ Integrantes:
 
 -Brandon Merchan
 
-# Presentación
+## Presentación
 
 ### https://www.canva.com/design/DAG5Lrz9CTo/XMe9uYcwRYg5JQlz1o4cNA/edit?utm_content=DAG5Lrz9CTo&utm_campaign=designshare&utm_medium=link2&utm_source=sharebutton
+
+## Colección de postman
+
+### https://web.postman.co/workspace/My-Workspace~4aa91ee4-4eda-4cb6-8f08-18fdf3f885f2/collection/34206053-2c05e30d-78f5-4049-869c-3ab5088d0fe6?action=share&source=copy-link&creator=34206053
+
